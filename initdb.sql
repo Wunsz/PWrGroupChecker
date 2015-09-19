@@ -23,12 +23,12 @@ CREATE TABLE `groups` (
   `assigned` INT NOT NULL,
   `building` VARCHAR(16) NULL,
   `room` VARCHAR(16) NULL,
-  `day` ENUM(1, 2, 3, 4, 5, 6, 7) NULL,
+  `day` SMALLINT(1) NULL,
   `start` TIME,
   `end` TIME,
   `lecturer` VARCHAR(255) NULL,
   `updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `last_change` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `last_change` TIMESTAMP NULL,
   CONSTRAINT `PK__groups` PRIMARY KEY (`id_group`),
   INDEX `IDX__groups__id_course` (`id_course` ASC),
   CONSTRAINT `FK__groups__courses`
@@ -38,7 +38,7 @@ CREATE TABLE `groups` (
 
 CREATE TABLE `groups_logs` (
   `id_group_log` INT NOT NULL AUTO_INCREMENT,
-  `id_group` INT NOT NULL,
+  `id_group` VARCHAR(2) NOT NULL,
   `assigned` INT NOT NULL,
   `check_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT `PK__groups_logs` PRIMARY KEY (`id_group_log`),
@@ -53,4 +53,4 @@ INSERT INTO `courses_types` (`type`, `polish`, `id_course_type`) VALUES ('Lectur
 INSERT INTO `courses_types` (`type`, `polish`, `id_course_type`) VALUES ('Laborartory', 'Laboratorium', 'L');
 INSERT INTO `courses_types` (`type`, `polish`, `id_course_type`) VALUES ('Excercises', 'Ćwiczenia', 'C');
 INSERT INTO `courses_types` (`type`, `polish`, `id_course_type`) VALUES ('Seminary', 'Seminarium', 'S');
-INSERT INTO `courses_types` (`type`, `polish`, `id_course_type`) VALUES ('Diploma', 'Dyplom', 'D')
+INSERT INTO `courses_types` (`type`, `polish`, `id_course_type`) VALUES ('Diploma', 'Dyplom', 'D');
