@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import configparser
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,7 +12,7 @@ class Connection:
         parser = configparser.ConfigParser()
         parser.read("settings.ini")
 
-        connection_string = 'mysql+pymysql://%s:%s@%s:%s/%s' % (
+        connection_string = 'mysql+pymysql://%s:%s@%s:%s/%s?charset=utf8' % (
             parser.get("Database", "user"),
             parser.get("Database", "password"),
             parser.get("Database", "host"),
@@ -20,7 +21,7 @@ class Connection:
         )
 
         # echo = True, ativa debug
-        engine = create_engine(connection_string, echo=False)
+        engine = create_engine(connection_string, echo=True, encoding='utf8')
         Session = sessionmaker(bind=engine)
 
         return Session()

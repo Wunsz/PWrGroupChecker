@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import datetime
 import GroupChecker
 import time
@@ -13,7 +14,10 @@ if __name__ == "__main__":
     # Shall we?
     start = time.time()
 
-    groupChecker = GroupChecker.GroupChecker(parser.get("General", "subscriptions"))
+    groupChecker = GroupChecker.GroupChecker(
+        parser.get("General", "subscriptions"),
+        parser.get("General", "use_db")
+    )
 
     groupChecker.login(parser.get("General", "login"), parser.get("General", "password"))
     courses = groupChecker.get_courses()

@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 import requests
 import re
+from sqlalchemy import func
+from orm.Connection import Connection
+from orm.Course import Course
+from orm.Group import Group
+from orm.GroupLog import GroupLog
+
 from bs4 import BeautifulSoup
 
 __author__ = 'Bartosz Jabłoński <thewunsz@gmail.com>'
@@ -46,11 +52,17 @@ class GroupChecker:
 
     ELEMENTS_PER_PAGE = 10
 
-    def __init__(self, subscriptions_id):
+    def __init__(self, subscriptions_id, use_db):
         self.session = None
         self.last_cookie = None
         self.token = None
         self.subscriptions_id = subscriptions_id
+        self.use_db = bool(use_db)
+        self.logs = []
+
+        if self.use_db:
+            self.connection = Connection.session()
+
         pass
 
     def login(self, login, password):
@@ -163,7 +175,7 @@ class GroupChecker:
                 raise Exception(self.INFO_BAD_TIME)
 
             # Parse current page groups
-            current_page_groups = self._parse_course_groups(html)
+            current_page_groups = self._parse_course_groups(html, course_code)
             groups.update(current_page_groups)
 
             # Exit loop if that was the last page
@@ -262,6 +274,8 @@ class GroupChecker:
                 "type": course_code[-1:]
             }
 
+            self._save_or_update_course(pretty_courses[course_code])
+
         return pretty_courses
 
     def _get_courses_groups_request(self, group_code="", course_code="", additional_parameters={}):
@@ -330,7 +344,7 @@ class GroupChecker:
 
         return page
 
-    def _parse_course_groups(self, html):
+    def _parse_course_groups(self, html, course_code):
         """
         Parses all groups for given page
         :param html:
@@ -350,7 +364,7 @@ class GroupChecker:
         first_row = first_row.next_sibling.next_sibling
 
         while condition:
-            group_data = self._parse_course_group(first_row)
+            group_data = self._parse_course_group(first_row, course_code)
             groups[group_data[0]['code']] = group_data[0]
 
             first_row = group_data[1]
@@ -373,9 +387,11 @@ class GroupChecker:
 
             condition = condition and (alternative_one or alternative_two)
 
+        self._commit_to_db()
+
         return groups
 
-    def _parse_course_group(self, first_row):
+    def _parse_course_group(self, first_row, course_code):
         """
         Parses 3-row data of the group
         :param first_row: First row from 3 row data in Edukacja (BeautifulSoup)
@@ -394,6 +410,9 @@ class GroupChecker:
             'lecturer': re.sub(r'\s+', ' ', second_row.td.text.strip())}
 
         group_data.update(self._parse_place_and_time(third_row.td.text.strip()))
+
+        # Save to DB
+        self._save_or_update_group(group_data, course_code, True)
 
         return [group_data, third_row]
 
@@ -451,3 +470,76 @@ class GroupChecker:
             sibling_count -= 1
 
         return soup_tag
+
+    def _save_or_update_course(self, course_data):
+        """
+        Saves or updates course data
+        :param course_data:
+        :return:
+        """
+        if not self.use_db:
+            return
+
+        course = self.connection.query(Course).filter(Course.id_course == course_data["code"]).first()
+        if course is None:
+            course = Course(id_course=course_data["code"], name=course_data["name"], type=course_data["type"])
+            self.connection.add(course)
+            self.connection.commit()
+        elif course.name is not course_data["name"] or course.type is not course_data["type"]:
+            course.name = course_data["name"]
+            course.type = course_data["type"]
+            self.connection.commit()
+
+    def _save_or_update_group(self, group_data, course, log_change=True):
+        """
+        Updates or saves group and if specified, creates a log entry
+        :param group_data:
+        :param course:
+        :param log_change:
+        :return:
+        """
+
+        log_change=False
+
+        if not self.use_db:
+            return
+
+        group = self.connection.query(Group).filter(Group.id_group == group_data["code"]).first()
+        if group is None:
+            group = Group(id_group=group_data["code"], id_course=course, assigned=group_data["taken"], capacity=group_data["capacity"])
+            group.last_change = None
+            self.connection.add(group)
+
+        if group.assigned is not group_data["taken"]:
+            group.last_change = func.now()
+            self.connection.add(group)
+
+        group.assigned = group_data["taken"]
+        group.capacity = group_data["capacity"]
+        group.day = None if group_data["day"] is "?" else group_data["day"]
+        group.start = None if group_data["start"] is "00:00" else group_data["start"]
+        group.end = None if group_data["start"] is "00:00" else group_data["end"]
+        group.building = None if group_data["building"] is "?" else group_data["building"]
+        group.room = None if group_data["room"] is "?" else group_data["room"]
+        group.lecturer = None if group_data["lecturer"] is "?" else group_data["lecturer"]
+        group.updated = func.now()
+
+        if log_change:
+            group_log = GroupLog(id_group=group_data["code"], assigned=group_data["taken"])
+            group_log.check_time = func.now()
+
+            self.logs.append(group_log)
+
+    def _commit_to_db(self):
+        """
+        Commits sql changes
+        :return:
+        """
+        if self.use_db:
+            self.connection.commit()
+
+            for group_log in self.logs:
+                self.connection.add(group_log)
+
+            self.connection.commit()
+            self.logs = []
