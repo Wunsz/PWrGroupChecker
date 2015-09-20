@@ -499,7 +499,7 @@ class GroupChecker:
         :return:
         """
 
-        log_change=False
+        log_change = False    # Logging feature is not working!
 
         if not self.use_db:
             return
@@ -510,7 +510,7 @@ class GroupChecker:
             group.last_change = None
             self.connection.add(group)
 
-        if group.assigned is not group_data["taken"]:
+        if int(group.assigned) != int(group_data["taken"]):
             group.last_change = func.now()
             self.connection.add(group)
 
