@@ -24,6 +24,7 @@ CREATE TABLE `groups` (
   `building` VARCHAR(16) NULL,
   `room` VARCHAR(16) NULL,
   `day` SMALLINT(1) NULL,
+  `week` VARCHAR(16) NULL,
   `start` TIME,
   `end` TIME,
   `lecturer` VARCHAR(255) NULL,

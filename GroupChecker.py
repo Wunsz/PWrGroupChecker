@@ -516,7 +516,8 @@ class GroupChecker:
 
         group.assigned = group_data["taken"]
         group.capacity = group_data["capacity"]
-        group.day = None if group_data["day"] is "?" else group_data["day"]
+        group.day = None if group_data["day"] is "?" else self._parse_day(group_data["day"])
+        group.week = None if group_data["day"] is "?" else self._parse_week(group_data["day"])
         group.start = None if group_data["start"] is "00:00" else group_data["start"]
         group.end = None if group_data["start"] is "00:00" else group_data["end"]
         group.building = None if group_data["building"] is "?" else group_data["building"]
@@ -529,6 +530,33 @@ class GroupChecker:
             group_log.check_time = func.now()
 
             self.logs.append(group_log)
+
+    def _parse_week(self, string):
+        """
+        Parses week number
+        :param string:
+        :return:
+        """
+        return "Odd" if "/TN" in string else "Even" if "/TP" in string else None
+
+    def _parse_day(self, string):
+        """
+        Parses day
+        :param string:
+        :return:
+        """
+        if "pn" in string:
+            return 1
+        elif "wt" in string:
+            return 2
+        elif "śr" in string:
+            return 3
+        elif "cz" in string:
+            return 4
+        elif "pt" in string:
+            return 5
+        else:
+            return None
 
     def _commit_to_db(self):
         """

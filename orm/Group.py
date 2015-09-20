@@ -14,6 +14,7 @@ class Group(Base):
     building = Column(String(16), nullable=False)
     room = Column(String(16), nullable=False)
     day = Column(Integer())
+    week = Column(String(16))
     start = Column(Time)
     end = Column(Time)
     lecturer = Column(String(255))

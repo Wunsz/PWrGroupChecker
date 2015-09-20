@@ -21,7 +21,7 @@ class Connection:
         )
 
         # echo = True, ativa debug
-        engine = create_engine(connection_string, echo=True, encoding='utf8')
+        engine = create_engine(connection_string, echo=False, encoding='utf8')
         Session = sessionmaker(bind=engine)
 
         return Session()
